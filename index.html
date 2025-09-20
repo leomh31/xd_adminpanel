@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة الأدمن - طلبات الانضمام</title>
+  <!-- Google Fonts - Roboto is a staple of Material Design -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Google-inspired color palette */
+      --primary-blue: #1a73e8; /* A common Google blue */
+      --light-blue: #e8f0fe;   /* Light background for elements */
+      --dark-gray: #202124;    /* Dark text/background */
+      --medium-gray: #5f6368;  /* Secondary text */
+      --light-gray: #f8f9fa;   /* Lightest background */
+      --white: #ffffff;
+      --border-color: rgba(223, 225, 229, 0.4); /* Subtle border */
+      --shadow-color: rgba(60, 64, 67, 0.15); /* Soft shadow */
+      --header-bg: #3c4043; /* Darker header for table */
+      --accent-color: #fbbc05; /* A subtle yellow accent */
+      --delete-red: #ea4335; /* Google red for delete actions */
+      --delete-red-hover: #c5221f;
+    }
+
+    body {
+      font-family: 'Roboto', 'Cairo', sans-serif;
+      background-color: var(--light-gray);
+      color: var(--dark-gray);
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      font-family: 'Cairo', sans-serif;
+      font-size: 2.8em;
+      color: var(--dark-gray);
+      margin-bottom: 40px;
+      position: relative;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* Underline effect for the title (Google style) */
+    h1::after {
+        content: '';
+        display: block;
+        width: 80px;
+        height: 4px;
+        background-color: var(--primary-blue);
+        margin: 10px auto 0;
+        border-radius: 2px;
+    }
+
+    .table-container {
+        width: 95%;
+        max-width: 1400px;
+        background-color: var(--white);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px 0 var(--shadow-color),
+                    0 1px 3px 1px var(--shadow-color); /* Google-like shadow */
+        overflow: hidden;
+        margin-top: 20px;
+        border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 18px 12px; /* Adjusted padding */
+      text-align: center;
+      font-size: 0.9em;
+      color: var(--dark-gray);
+      transition: background-color 0.2s ease;
+      word-break: break-word;
+    }
+
+    th {
+      background-color: var(--header-bg);
+      color: var(--white);
+      font-weight: 500; /* Medium weight for headers */
+      position: sticky;
+      top: 0;
+      z-index: 10; /* Ensure header stays on top */
+      padding: 15px 12px;
+      font-size: 1em;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: var(--light-gray); /* Subtle alternating row */
+    }
+
+    tbody tr:hover {
+      background-color: var(--light-blue); /* Google-like hover highlight */
+      cursor: pointer;
+    }
+
+    /* Style for empty/error messages */
+    .message-row td {
+        background-color: var(--light-blue) !important;
+        color: var(--medium-gray);
+        font-size: 1.1em;
+        padding: 30px;
+    }
+
+    .delete-btn {
+        background-color: var(--delete-red);
+        color: var(--white);
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 500;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .delete-btn:hover {
+        background-color: var(--delete-red-hover);
+        transform: translateY(-1px);
+    }
+
+    .delete-btn:active {
+        transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+    <h1>طلبات الانضمام</h1>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>الاسم في اللعبة</th>
+                    <th>العمر</th>
+                    <th>ديسكورد</th>
+                    <th>Q1</th>
+                    <th>Q2</th>
+                    <th>Q3</th>
+                    <th>Q4</th>
+                    <th>Q5</th>
+                    <th>إجراءات</th> <!-- New column for actions -->
+                </tr>
+            </thead>
+            <tbody id="requestsTable"></tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDJke7t9YM-iLmuM6wAyycjbpvsjS5oajA",
+          authDomain: "lb4legendsauth.firebaseapp.com",
+          projectId: "lb4legendsauth",
+          storageBucket: "lb4legendsauth.firebasestorage.com",
+          messagingSenderId: "95326441450",
+          appId: "1:95326441450:web:925968b79344bb43e0ac93",
+          measurementId: "G-58PYKTVGXK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function deleteRequest(docId) {
+            if (confirm("هل أنت متأكد أنك تريد حذف هذا الطلب؟")) {
+                try {
+                    await deleteDoc(doc(db, "verify_requests", docId));
+                    alert("تم حذف الطلب بنجاح!");
+                    loadRequests(); // Reload the table to reflect the change
+                } catch (error) {
+                    console.error("Error deleting document: ", error);
+                    alert(`فشل حذف الطلب: ${error.message}`);
+                }
+            }
+        }
+
+        async function loadRequests() {
+          const table = document.getElementById("requestsTable");
+          table.innerHTML = ''; // Clear existing content before loading
+          try {
+            const querySnapshot = await getDocs(collection(db, "verify_requests"));
+            if (querySnapshot.empty) {
+                table.innerHTML = `<tr class="message-row"><td colspan="9">لا توجد طلبات انضمام حالياً.</td></tr>`; // Updated colspan
+            } else {
+                querySnapshot.forEach((document) => { // Renamed doc to document to avoid conflict with imported doc
+                    const d = document.data();
+                    const docId = document.id; // Get the document ID
+                    const row = `
+                      <tr>
+                        <td>${d.gameName || 'غير متوفر'}</td>
+                        <td>${d.age || 'غير متوفر'}</td>
+                        <td>${d.discordName || 'غير متوفر'}</td>
+                        <td>${d.q1 || 'غير متوفر'}</td>
+                        <td>${d.q2 || 'غير متوفر'}</td>
+                        <td>${d.q3 || 'غير متوفر'}</td>
+                        <td>${d.q4 || 'غير متوفر'}</td>
+                        <td>${d.q5 || 'غير متوفر'}</td>
+                        <td>
+                          <button class="delete-btn" onclick="deleteRequest('${docId}')">حذف</button>
+                        </td>
+                      </tr>
+                    `;
+                    table.innerHTML += row;
+                });
+            }
+          } catch (error) {
+              console.error("Error loading requests: ", error);
+              table.innerHTML = `<tr class="message-row"><td colspan="9">حدث خطأ أثناء تحميل الطلبات: ${error.message}</td></tr>`; // Updated colspan
+          }
+        }
+
+        // Make deleteRequest globally accessible for onclick
+        window.deleteRequest = deleteRequest;
+
+        loadRequests();
+    </script>
+</body>
+</html>
